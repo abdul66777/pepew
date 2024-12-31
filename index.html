@@ -117,111 +117,100 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function fetchDataAndRender() {
-            const apiData = JSON.parse(`{
-                "result": {
-                    "pendingShares": 10874.5465926419,
-                    "pendingBalance": 1109.0793884211,
-                    "todayPaid": 49181.6006518229,
-                    "totalPaid": 49181.6006518229,
-                    "totalPromotionalRewardPaid": 3430.518322,
-                    "performance": {
-                        "workers": {
-                            "cloud": {"hashrate": 87515, "sharesPerSecond": 5.902, "price": 0.000008301},
-                            "default": {"hashrate": 288932, "sharesPerSecond": 0.421, "price": 0.000008301},
-                            "o": {"hashrate": 4983, "sharesPerSecond": 0.066, "price": 0.000008301}
+            fetch('https://mining4people.com/api/pools/pepecoin-pplns/account/PRGbxfWBcVJ1Q1Tuinx6XhxExW2ME5JUat')
+                .then(response => response.json())
+                .then(apiData => {
+                    const price = apiData.result.performance.price;
+
+                    // Update statistics
+                    document.getElementById('pendingBalance').textContent = `${apiData.result.pendingBalance.toFixed(2)} PEPE / $${(apiData.result.pendingBalance * price).toFixed(2)}`;
+                    document.getElementById('todayPaid').textContent = `${apiData.result.todayPaid.toFixed(2)} PEPE / $${(apiData.result.todayPaid * price).toFixed(2)}`;
+                    document.getElementById('totalPaid').textContent = `${apiData.result.totalPaid.toFixed(2)} PEPE / $${(apiData.result.totalPaid * price).toFixed(2)}`;
+                    document.getElementById('bonus').textContent = `${apiData.result.totalPromotionalRewardPaid.toFixed(2)} PEPE / $${(apiData.result.totalPromotionalRewardPaid * price).toFixed(2)}`;
+                    document.getElementById('price').textContent = `$${price.toFixed(8)}`;
+
+                    // Calculate total hashrate and shares
+                    const workers = apiData.result.performance.workers;
+                    const totalHashrate = workers.cloud.hashrate + workers.default.hashrate + workers.o.hashrate;
+                    const totalShares = workers.cloud.sharesPerSecond + workers.default.sharesPerSecond + workers.o.sharesPerSecond;
+
+                    document.getElementById('totalHashrate').textContent = totalHashrate.toFixed(0);
+                    document.getElementById('totalShares').textContent = totalShares.toFixed(2);
+
+                    // Update charts
+                    const ctxHashrate = document.getElementById('hashrateChart').getContext('2d');
+                    const ctxShares = document.getElementById('sharesChart').getContext('2d');
+
+                    const labels = ['Cloud', 'Default', 'Other'];
+                    const hashrates = [workers.cloud.hashrate, workers.default.hashrate, workers.o.hashrate];
+                    const shares = [workers.cloud.sharesPerSecond, workers.default.sharesPerSecond, workers.o.sharesPerSecond];
+
+                    new Chart(ctxHashrate, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Hashrate (H/s)',
+                                data: hashrates,
+                                backgroundColor: ['#f79248', '#4897f7', '#6f42c1'],
+                            }]
                         },
-                        "price": 0.000008301
-                    }
-                },
-                "success": true
-            }`);
-
-            const price = apiData.result.performance.price;
-
-            // Update statistics
-            document.getElementById('pendingBalance').textContent = `${apiData.result.pendingBalance.toFixed(2)} PEPE / $${(apiData.result.pendingBalance * price).toFixed(2)}`;
-            document.getElementById('todayPaid').textContent = `${apiData.result.todayPaid.toFixed(2)} PEPE / $${(apiData.result.todayPaid * price).toFixed(2)}`;
-            document.getElementById('totalPaid').textContent = `${apiData.result.totalPaid.toFixed(2)} PEPE / $${(apiData.result.totalPaid * price).toFixed(2)}`;
-            document.getElementById('bonus').textContent = `${apiData.result.totalPromotionalRewardPaid.toFixed(2)} PEPE / $${(apiData.result.totalPromotionalRewardPaid * price).toFixed(2)}`;
-            document.getElementById('price').textContent = `$${price.toFixed(8)}`;
-
-            // Calculate total hashrate and shares
-            const workers = apiData.result.performance.workers;
-            const totalHashrate = workers.cloud.hashrate + workers.default.hashrate + workers.o.hashrate;
-            const totalShares = workers.cloud.sharesPerSecond + workers.default.sharesPerSecond + workers.o.sharesPerSecond;
-
-            document.getElementById('totalHashrate').textContent = totalHashrate.toFixed(0);
-            document.getElementById('totalShares').textContent = totalShares.toFixed(2);
-
-            // Update charts
-            const ctxHashrate = document.getElementById('hashrateChart').getContext('2d');
-            const ctxShares = document.getElementById('sharesChart').getContext('2d');
-
-            const labels = ['Cloud', 'Default', 'Other'];
-            const hashrates = [workers.cloud.hashrate, workers.default.hashrate, workers.o.hashrate];
-            const shares = [workers.cloud.sharesPerSecond, workers.default.sharesPerSecond, workers.o.sharesPerSecond];
-
-            new Chart(ctxHashrate, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Hashrate (H/s)',
-                        data: hashrates,
-                        backgroundColor: ['#f79248', '#4897f7', '#6f42c1'],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Hashrate (H/s)'
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Hashrate (H/s)'
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-            });
+                    });
 
-            new Chart(ctxShares, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Shares Per Second',
-                        data: shares,
-                        backgroundColor: ['#198754', '#dc3545', '#fd7e14'],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Shares Per Second'
+                    new Chart(ctxShares, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Shares Per Second',
+                                data: shares,
+                                backgroundColor: ['#198754', '#dc3545', '#fd7e14'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Shares Per Second'
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-            });
+                    });
 
-            // Update last check
-            const now = new Date();
-            document.getElementById('lastCheck').textContent = `Last check: ${now.toLocaleString('en-GB', { timeZone: 'Asia/Jakarta' })} +7 UTC`;
+                    // Update last check
+                    const now = new Date();
+                    document.getElementById('lastCheck').textContent = `Last check: ${now.toLocaleString('en-GB', { timeZone: 'Asia/Jakarta' })} +7 UTC`;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    alert('Error fetching data from API');
+                });
         }
 
         fetchDataAndRender();
