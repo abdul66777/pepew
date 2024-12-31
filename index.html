@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1d;
+            color: #f1f1f1;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #262626;
+            opacity: 0.8;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats .stat {
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat h3 {
+            margin: 0;
+            font-size: 1em;
+        }
+
+        .stat p {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .summary {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            color: #fff;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mining Dashboard</h1>
+    </header>
+    <div class="container">
+        <div class="stats">
+            <div class="stat">
+                <h3>Pending Balance</h3>
+                <p id="pendingBalance">Loading...</p>
+            </div>
+            <div class="stat">
+                <h3>Bonus</h3>
+                <p id="bonus">Loading...</p>
+            </div>
+            <div class="stat">
+                <h3>Today Paid</h3>
+                <p id="todayPaid">Loading...</p>
+            </div>
+            <div class="stat">
+                <h3>Price</h3>
+                <p id="price">Loading...</p>
+            </div>
+            <div class="stat">
+                <h3>Total Paid</h3>
+                <p id="totalPaid">Loading...</p>
+            </div>
+        </div>
+        <div class="summary">
+            <h3>Total Hashrate: <span id="totalHashrate">Loading...</span> H/s</h3>
+            <h3>Total Shares: <span id="totalShares">Loading...</span> Shares/s</h3>
+        </div>
+        <div class="chart-container">
+            <canvas id="hashrateChart"></canvas>
+            <canvas id="sharesChart"></canvas>
+        </div>
+    </div>
+    <footer>
+        <p id="lastCheck">Last check: Loading...</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function fetchDataAndRender() {
+            const apiData = JSON.parse(`{
+                "result": {
+                    "pendingShares": 10874.5465926419,
+                    "pendingBalance": 1109.0793884211,
+                    "todayPaid": 49181.6006518229,
+                    "totalPaid": 49181.6006518229,
+                    "totalPromotionalRewardPaid": 3430.518322,
+                    "performance": {
+                        "workers": {
+                            "cloud": {"hashrate": 87515, "sharesPerSecond": 5.902, "price": 0.000008301},
+                            "default": {"hashrate": 288932, "sharesPerSecond": 0.421, "price": 0.000008301},
+                            "o": {"hashrate": 4983, "sharesPerSecond": 0.066, "price": 0.000008301}
+                        },
+                        "price": 0.000008301
+                    }
+                },
+                "success": true
+            }`);
+
+            const price = apiData.result.performance.price;
+
+            // Update statistics
+            document.getElementById('pendingBalance').textContent = `${apiData.result.pendingBalance.toFixed(2)} PEPE / $${(apiData.result.pendingBalance * price).toFixed(2)}`;
+            document.getElementById('todayPaid').textContent = `${apiData.result.todayPaid.toFixed(2)} PEPE / $${(apiData.result.todayPaid * price).toFixed(2)}`;
+            document.getElementById('totalPaid').textContent = `${apiData.result.totalPaid.toFixed(2)} PEPE / $${(apiData.result.totalPaid * price).toFixed(2)}`;
+            document.getElementById('bonus').textContent = `${apiData.result.totalPromotionalRewardPaid.toFixed(2)} PEPE / $${(apiData.result.totalPromotionalRewardPaid * price).toFixed(2)}`;
+            document.getElementById('price').textContent = `$${price.toFixed(8)}`;
+
+            // Calculate total hashrate and shares
+            const workers = apiData.result.performance.workers;
+            const totalHashrate = workers.cloud.hashrate + workers.default.hashrate + workers.o.hashrate;
+            const totalShares = workers.cloud.sharesPerSecond + workers.default.sharesPerSecond + workers.o.sharesPerSecond;
+
+            document.getElementById('totalHashrate').textContent = totalHashrate.toFixed(0);
+            document.getElementById('totalShares').textContent = totalShares.toFixed(2);
+
+            // Update charts
+            const ctxHashrate = document.getElementById('hashrateChart').getContext('2d');
+            const ctxShares = document.getElementById('sharesChart').getContext('2d');
+
+            const labels = ['Cloud', 'Default', 'Other'];
+            const hashrates = [workers.cloud.hashrate, workers.default.hashrate, workers.o.hashrate];
+            const shares = [workers.cloud.sharesPerSecond, workers.default.sharesPerSecond, workers.o.sharesPerSecond];
+
+            new Chart(ctxHashrate, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hashrate (H/s)',
+                        data: hashrates,
+                        backgroundColor: ['#f79248', '#4897f7', '#6f42c1'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Hashrate (H/s)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            new Chart(ctxShares, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Shares Per Second',
+                        data: shares,
+                        backgroundColor: ['#198754', '#dc3545', '#fd7e14'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Shares Per Second'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update last check
+            const now = new Date();
+            document.getElementById('lastCheck').textContent = `Last check: ${now.toLocaleString('en-GB', { timeZone: 'Asia/Jakarta' })} +7 UTC`;
+        }
+
+        fetchDataAndRender();
+        setInterval(fetchDataAndRender, 120000); // Refresh every 2 minutes
+    </script>
+</body>
+</html>
